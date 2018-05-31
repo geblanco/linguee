@@ -1,0 +1,5 @@
+{
+  "server": "http://www.linguee.com.br",
+  "search": "search?source=auto",
+  "options": "ajax=1"
+}

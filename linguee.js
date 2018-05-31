@@ -1,82 +1,88 @@
-var request = require('request');
-var cheerio = require('cheerio');
+'use strict'
 
-module.exports = {
-	translate : function (received, opts, cb) {
-    request('http://www.linguee.com.br/' + lang[opts.from] + '-' + lang[opts.to] + '/search?source=auto&query=' + received + '&ajax=1', function (error, response, body) {
-      if (!error && response.statusCode == 200) {
-       var $ = cheerio.load(body);
+const request = require('request')
+const cheerio = require('cheerio')
+const { joinSafe } = require('upath')
 
-      // get translations
+const { server, search, options } = require(joinSafe(__dirname || './', 'config.json'))
+const lang = require(joinSafe(__dirname || './', 'dicts.json'))
 
-      var translation = {};
+function checkOpts(opts) {
+  return (
+    opts.hasOwnProperty('from') &&
+    opts.hasOwnProperty('to') &&
+    lang.hasOwnProperty(opts['from']) &&
+    lang.hasOwnProperty(opts['to'])
+  )
+}
 
-      var pos = $('.exact').find('.translation_desc').map(function() {
-        var trans = $(this).find('.tag_trans'); 
-        var text = trans.find('.dictLink').text();
-        var type = trans.find('.tag_type').text();
-        var obj = {};
-        // obj[type] = text;
-        try {
-            translation[type].push(text);
-        } catch (err) {
-      translation[type] = [];
-            translation[type].push(text);
-        }
-        obj.type = type;
-        obj.translation = text;
-        return obj;
-        
-      }).get();
+function extractTranslations(context, body) {
+  const translations = {}
+  
+  body('.exact', context).find('.translation_desc').map(function() {
+    const trans = body(this).find('.tag_trans') 
+    const translation = trans.find('.dictLink').text()
+    const type = trans.find('.tag_type').text()
+    if (!translations.hasOwnProperty(type)) {
+      translations[type] = []
+    }
+    translations[type].push(translation)
+    return { type, translation }
+  }).get()
 
-      // get the audios
+  return translations
+}
 
-       var audios = $('.exact').find('.lemma_desc').map(function () { return JSON.parse($(this)
+function extractAudios(context, body) {
+  return body('.exact').find('.lemma_desc').map(function () {
+    return JSON.parse(
+      body(this)
         .find('.audio')
         .attr('onclick')
         .replace('playSound(this,', '[')
-        .replace(');', ']'));
-       }).get();
-
-       // prepare the object to be send
-
-      var resp = {
-        word: received,
-        audio: (typeof audios[0] === 'undefined') ? null : 'http://www.linguee.com.br/mp3/' + audios[0],
-        pos: translation
-       }
-
-      cb(resp);
-
-      }
-    })
-	}
+        .replace(');', ']')
+    )
+  }).get()
 }
 
-var lang = {
-  'eng' : 'english',
-  'ger' : 'german',
-  'fra' : 'french',
-  'spa' : 'spanish',
-  'chi' : 'chinese',
-  'rus' : 'russian',
-  'jpn' : 'japanese',
-  'por' : 'portuguese',
-  'ita' : 'italian',
-  'dut' : 'dutch',
-  'pol' : 'polish',
-  'swe' : 'swedish',
-  'dan' : 'danish',
-  'fin' : 'finnish',
-  'gre' : 'greek',
-  'cze' : 'czech',
-  'rum' : 'romanian',
-  'hun' : 'hungarian',
-  'slo' : 'slovak',
-  'bul' : 'bulgarian',
-  'slv' : 'slovene',
-  'lit' : 'lithuanian',
-  'lav' : 'latvian',
-  'est' : 'estonian',
-  'mlt' : 'maltese'
+function extractFromBody(context, body, withAudio) {
+    
+  const ret = {
+    pos: extractTranslations(context, body)
+  }
+
+  if (withAudio) {
+    const audios = extractAudios(context, body)
+    ret['audio'] = (typeof audios[0] === 'undefined') ? null : `http://www.linguee.com.br/mp3/${audios[0]}`
+  }
+  return ret
+}
+
+function translate(received, opts, callback) {
+
+  if (!checkOpts(opts)) {
+    return callback('Bad options supplied')
+  }
+
+  const url = `${server}/${lang[opts.from].name}-${lang[opts.to].name}/${search}&query=${received}&${options}`
+  request(url, { encoding: 'binary' }, (error, response, body) => {
+
+    if (error || response.statusCode !== 200) {
+      return callback('Unable to fecth')
+    }
+
+    const loadedBody = cheerio.load(body)
+    const audio = !!opts['withAudio']
+    const origContext = `[data-source-lang="${lang[opts.from].context}"]`
+    const transContext = `[data-source-lang="${lang[opts.to].context}"]`
+    const originalExtracted = extractFromBody(origContext, loadedBody, audio)
+    const translatedExtracted = extractFromBody(transContext, loadedBody, audio)
+
+    callback(null, { [opts.to]: originalExtracted, [opts.from]: translatedExtracted })
+  })
+}
+
+module.exports = {
+	translate : translate,
+  getLocales: () => langs
 }

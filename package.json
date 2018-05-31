@@ -1,6 +1,6 @@
 {
   "name": "linguee",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Bilingual word translation straight from Linguee website",
   "main": "linguee.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/fesnt/linguee.git"
+    "url": "git://github.com/m0n0l0c0/linguee.git"
   },
   "keywords": [
     "linguee",
@@ -20,6 +20,8 @@
   "license": "MIT",
   "dependencies": {
     "cheerio": "^0.22.0",
-    "request": "^2.75.0"
+    "cli-colors": "0.0.2",
+    "request": "^2.75.0",
+    "upath": "^1.1.0"
   }
 }

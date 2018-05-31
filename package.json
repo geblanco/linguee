@@ -2,6 +2,7 @@
   "name": "linguee",
   "version": "0.0.2",
   "description": "Bilingual word translation straight from Linguee website",
+  "bin": "cli.js",
   "main": "linguee.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

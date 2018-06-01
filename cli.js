@@ -4,7 +4,7 @@
 
 const linguee = require('./linguee')
 const readline = require('readline')
-const { bold, red, blue, green, magenta, underline } = require('cli-colors')
+const { bold, red, blue, green, magenta, gray, underline } = require('cli-colors')
 const langs = ['spa', 'eng']
 
 const rl = readline.createInterface({
@@ -30,7 +30,11 @@ function translate(word, callback) {
       return callback(bold(red(err)))
     }
 
-    const str = `${underline(from)}\n${parseLangResult(resp[from])}\n${underline(to)}\n${parseLangResult(resp[to])}`
+    const firstExtras = resp[`extras-${from}`] ? bold(gray(resp[`extras-${from}`])) : ''
+    const secondExtras = resp[`extras-${to}`] ? bold(gray(resp[`extras-${to}`])) : ''
+    const firstTitle = `${underline(from)}  ${firstExtras}`
+    const secondTitle = `${underline(to)}  ${secondExtras}`
+    const str = `${firstTitle}\n${parseLangResult(resp[from])}\n${secondTitle}\n${parseLangResult(resp[to])}`
     callback(str)
   })
 }

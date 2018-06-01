@@ -16,20 +16,31 @@ function checkOpts(opts) {
   )
 }
 
+function extractWordInfo(body) {
+  return body('.exact').find('.tag_forms').map(function() {
+    return body(this).text().trim()
+  }).get()
+}
+
 function extractTranslations(context, body) {
   const translations = {}
   
-  body('.exact', context).find('.translation_desc').map(function() {
+  const t = body('.exact', context).find('.translation_desc').map(function() {
     const trans = body(this).find('.tag_trans') 
-    const translation = trans.find('.dictLink').text()
-    const type = trans.find('.tag_type').text()
-    if (!translations.hasOwnProperty(type)) {
-      translations[type] = []
+    return {
+      [trans.find('.tag_type').text()]: trans.find('.dictLink').text(),
     }
-    translations[type].push(translation)
-    return { type, translation }
   }).get()
 
+  for(let item of t) {
+    for(let key in item) {
+      if( !translations.hasOwnProperty(key) ){
+        translations[key] = []
+      }
+      translations[key].push(item[key])
+    }
+  }
+  
   return translations
 }
 
@@ -77,8 +88,15 @@ function translate(received, opts, callback) {
     const transContext = `[data-source-lang="${lang[opts.to].context}"]`
     const originalExtracted = extractFromBody(origContext, loadedBody, audio)
     const translatedExtracted = extractFromBody(transContext, loadedBody, audio)
+    const [ translatedInfo, originalInfo ] = extractWordInfo(loadedBody)
 
-    callback(null, { [opts.to]: originalExtracted, [opts.from]: translatedExtracted })
+    const ret = {
+      [`extras-${opts.to}`]: translatedInfo,
+      [`extras-${opts.from}`]: originalInfo,
+      [opts.to]: originalExtracted,
+      [opts.from]: translatedExtracted
+    }
+    callback( null, ret )
   })
 }
 

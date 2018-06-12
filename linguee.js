@@ -57,7 +57,6 @@ function extractAudios(context, body) {
 }
 
 function extractFromBody(context, body, withAudio) {
-    
   const ret = {
     pos: extractTranslations(context, body)
   }
@@ -70,7 +69,6 @@ function extractFromBody(context, body, withAudio) {
 }
 
 function translate(received, opts, callback) {
-
   if (!checkOpts(opts)) {
     return callback('Bad options supplied')
   }
@@ -101,6 +99,6 @@ function translate(received, opts, callback) {
 }
 
 module.exports = {
-	translate : translate,
+  translate : translate,
   getLocales: () => langs
 }

@@ -77,4 +77,21 @@ function searchPrompt() {
   })
 }
 
+function translateWords(words){
+  if( words.length > 0 ){
+    let current = words.pop()
+    translate(current, (res) => {
+      console.log(bold(green(current)))
+      console.log(res)
+      translateWords(words)
+    })
+  }else{
+    process.exit(0)
+  }
+}
+
+if( process.argv.length > 2 ){
+  return translateWords(process.argv.splice(2))
+}
+
 searchPrompt()

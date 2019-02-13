@@ -80,7 +80,6 @@ function translate(received, opts, callback) {
       return callback('Unable to fecth')
     }
 
-    console.log(body)
     const loadedBody = cheerio.load(body)
     const audio = !!opts['withAudio']
     const origContext = `[data-source-lang="${lang[opts.from].context}"]`

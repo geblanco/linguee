@@ -73,13 +73,14 @@ function translate(received, opts, callback) {
     return callback('Bad options supplied')
   }
 
-  const url = `${server}/${lang[opts.from].name}-${lang[opts.to].name}/${search}&query=${received}&${options}`
+  const url = encodeURI(`${server}/${lang[opts.from].name}-${lang[opts.to].name}/${search}&query=${received}&${options}`)
   request(url, { encoding: 'binary' }, (error, response, body) => {
 
     if (error || response.statusCode !== 200) {
       return callback('Unable to fecth')
     }
 
+    console.log(body)
     const loadedBody = cheerio.load(body)
     const audio = !!opts['withAudio']
     const origContext = `[data-source-lang="${lang[opts.from].context}"]`

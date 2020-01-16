@@ -7,6 +7,23 @@ const { joinSafe } = require('upath')
 const { server, search, options } = require(joinSafe(__dirname || './', 'config.json'))
 const lang = require(joinSafe(__dirname || './', 'dicts.json'))
 
+const tildeRegexp = new RegExp("(\\'[a|e|i|o|u])|(\\~[n])", "i")
+// Accept latex-like tilde chars (\'a, or just 'a)
+const replacements = require(joinSafe(__dirname || './', './replacements.json'))
+
+function expandTildes(word){
+  var ret = word
+  if( tildeRegexp.test(word) ){
+    ret = word.replace('\\', '')
+    ret = ret.replace(tildeRegexp, function(char){
+      return replacements[char]
+    })
+    // Recurse for the rest of replacements
+    return expandTildes(ret)
+  }
+  return ret
+}
+
 function checkOpts(opts) {
   return (
     opts.hasOwnProperty('from') &&
@@ -72,8 +89,8 @@ function translate(received, opts, callback) {
   if (!checkOpts(opts)) {
     return callback('Bad options supplied')
   }
-
-  const url = encodeURI(`${server}/${lang[opts.from].name}-${lang[opts.to].name}/${search}&query=${received}&${options}`)
+  const queryText = expandTildes(received)
+  const url = encodeURI(`${server}/${lang[opts.from].name}-${lang[opts.to].name}/${search}&query=${queryText}&${options}`)
   request(url, { encoding: 'binary' }, (error, response, body) => {
 
     if (error || response.statusCode !== 200) {

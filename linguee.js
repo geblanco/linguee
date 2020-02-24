@@ -94,6 +94,7 @@ function translate(received, opts, callback) {
   request(url, { encoding: 'binary' }, (error, response, body) => {
 
     if (error || response.statusCode !== 200) {
+      console.log('Errored: ', error, response.statusCode)
       return callback('Unable to fecth')
     }
 

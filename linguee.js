@@ -118,5 +118,5 @@ function translate(received, opts, callback) {
 
 module.exports = {
   translate : translate,
-  getLocales: () => langs
+  getLocales: () => lang
 }

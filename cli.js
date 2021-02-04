@@ -5,7 +5,7 @@
 const linguee = require('./linguee')
 const readline = require('readline')
 const { bold, red, blue, green, magenta, gray, underline } = require('cli-colors')
-const langs = ['spa', 'eng']
+const langs = ['es', 'en']
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -40,7 +40,12 @@ function translate(word, callback) {
 }
 
 function changeLanguage(fromLang, callback) {
-  rl.question(`change from\n[${fromLang}] -> `, (input) => {
+  rl.question(`Change from\n[${fromLang}] -> `, (input) => {
+    if( input !== 'q' && !(input in linguee.getLocales()) ){
+      console.log(bold(red('Language not found.')))
+      console.log(`Available languages: ${Object.keys(linguee.getLocales())}`)
+      return changeLanguage(fromLang, callback)
+    }
     callback( input === 'q' ? fromLang : input )
   })
 }
@@ -65,7 +70,7 @@ function changeTranslation(input, callback) {
 
 function searchPrompt() {
   rl.question(bold(magenta('translate := ')), (input) => {
-    if( input === 'exit' ){
+    if( input === 'exit' || input === 'quit' ){
       rl.close()
     }else{
       let fn = input === 'lang' ? changeTranslation : translate

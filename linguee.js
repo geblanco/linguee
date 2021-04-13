@@ -3,13 +3,13 @@
 const request = require('request')
 const cheerio = require('cheerio')
 const { joinSafe } = require('upath')
-
-const { server, search, options } = require(joinSafe(__dirname || './', 'config.json'))
-const lang = require(joinSafe(__dirname || './', 'dicts.json'))
+const { queryDatabase, updateDatabase } = require(joinSafe(__dirname || '.', 'db'))
+const { server, search, options } = require(joinSafe(__dirname || '.', 'config.json'))
+const lang = require(joinSafe(__dirname || '.', 'dicts.json'))
 
 const tildeRegexp = new RegExp("(\\'[a|e|i|o|u])|(\\~[n])", "i")
 // Accept latex-like tilde chars (\'a, or just 'a)
-const replacements = require(joinSafe(__dirname || './', './replacements.json'))
+const replacements = require(joinSafe(__dirname || '.', 'replacements.json'))
 
 function expandTildes(word){
   var ret = word
@@ -85,11 +85,32 @@ function extractFromBody(context, body, withAudio) {
   return ret
 }
 
+function formatResponse(opts, body) {
+  const loadedBody = cheerio.load(body)
+  const audio = !!opts['withAudio']
+  const origContext = `[data-source-lang="${lang[opts.from].context}"]`
+  const transContext = `[data-source-lang="${lang[opts.to].context}"]`
+  const originalExtracted = extractFromBody(origContext, loadedBody, audio)
+  const translatedExtracted = extractFromBody(transContext, loadedBody, audio)
+  const [ translatedInfo, originalInfo ] = extractWordInfo(loadedBody)
+
+  return {
+    [`extras-${opts.to}`]: translatedInfo,
+    [`extras-${opts.from}`]: originalInfo,
+    [opts.to]: originalExtracted,
+    [opts.from]: translatedExtracted
+  }
+}
+
 function translate(received, opts, callback) {
   if (!checkOpts(opts)) {
     return callback('Bad options supplied')
   }
   const queryText = expandTildes(received)
+  const dbEntry = queryDatabase(opts.from, queryText)
+  if (dbEntry !== null) {
+    return callback( null, dbEntry )
+  }
   const url = encodeURI(`${server}/${lang[opts.from].name}-${lang[opts.to].name}/${search}&query=${queryText}&${options}`)
   request(url, { encoding: 'binary' }, (error, response, body) => {
 
@@ -98,21 +119,9 @@ function translate(received, opts, callback) {
       return callback('Unable to fecth')
     }
 
-    const loadedBody = cheerio.load(body)
-    const audio = !!opts['withAudio']
-    const origContext = `[data-source-lang="${lang[opts.from].context}"]`
-    const transContext = `[data-source-lang="${lang[opts.to].context}"]`
-    const originalExtracted = extractFromBody(origContext, loadedBody, audio)
-    const translatedExtracted = extractFromBody(transContext, loadedBody, audio)
-    const [ translatedInfo, originalInfo ] = extractWordInfo(loadedBody)
-
-    const ret = {
-      [`extras-${opts.to}`]: translatedInfo,
-      [`extras-${opts.from}`]: originalInfo,
-      [opts.to]: originalExtracted,
-      [opts.from]: translatedExtracted
-    }
+    const ret = formatResponse(opts, body)
     callback( null, ret )
+    updateDatabase(opts.from, queryText, ret)
   })
 }
 

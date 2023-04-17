@@ -11,11 +11,11 @@ const tildeRegexp = new RegExp("(\\'[a|e|i|o|u])|(\\~[n])", "i")
 // Accept latex-like tilde chars (\'a, or just 'a)
 const replacements = require(joinSafe(__dirname || '.', 'replacements.json'))
 
-function expandTildes(word){
+function expandTildes(word) {
   var ret = word
-  if( tildeRegexp.test(word) ){
+  if (tildeRegexp.test(word)) {
     ret = word.replace('\\', '')
-    ret = ret.replace(tildeRegexp, function(char){
+    ret = ret.replace(tildeRegexp, function (char) {
       return replacements[char]
     })
     // Recurse for the rest of replacements
@@ -34,30 +34,30 @@ function checkOpts(opts) {
 }
 
 function extractWordInfo(body) {
-  return body('.exact').find('.tag_forms').map(function() {
+  return body('.exact').find('.tag_forms').map(function () {
     return body(this).text().trim()
   }).get()
 }
 
 function extractTranslations(context, body) {
   const translations = {}
-  
-  const t = body('.exact', context).find('.translation_desc').map(function() {
-    const trans = body(this).find('.tag_trans') 
+
+  const t = body('.exact', context).find('.translation_desc').map(function () {
+    const trans = body(this).find('.tag_trans')
     return {
       [trans.find('.tag_type').text()]: trans.find('.dictLink').text(),
     }
   }).get()
 
-  for(let item of t) {
-    for(let key in item) {
-      if( !translations.hasOwnProperty(key) ){
+  for (let item of t) {
+    for (let key in item) {
+      if (!translations.hasOwnProperty(key)) {
         translations[key] = []
       }
       translations[key].push(item[key])
     }
   }
-  
+
   return translations
 }
 
@@ -92,7 +92,7 @@ function formatResponse(opts, body) {
   const transContext = `[data-source-lang="${lang[opts.to].context}"]`
   const originalExtracted = extractFromBody(origContext, loadedBody, audio)
   const translatedExtracted = extractFromBody(transContext, loadedBody, audio)
-  const [ translatedInfo, originalInfo ] = extractWordInfo(loadedBody)
+  const [translatedInfo, originalInfo] = extractWordInfo(loadedBody)
 
   return {
     [`extras-${opts.to}`]: translatedInfo,
@@ -102,14 +102,19 @@ function formatResponse(opts, body) {
   }
 }
 
+function formatOptLangForDB(opts) {
+  return [opts.from, opts.to].sort().join("-")
+}
+
 function translate(received, opts, callback) {
   if (!checkOpts(opts)) {
     return callback('Bad options supplied')
   }
   const queryText = expandTildes(received)
-  const dbEntry = queryDatabase(opts.from, queryText)
+  const dbName = formatOptLangForDB(opts)
+  const dbEntry = queryDatabase(dbName, queryText)
   if (dbEntry !== null) {
-    return callback( null, dbEntry )
+    return callback(null, dbEntry)
   }
   const url = encodeURI(`${server}/${lang[opts.from].name}-${lang[opts.to].name}/${search}&query=${queryText}&${options}`)
   request(url, { encoding: 'binary' }, (error, response, body) => {
@@ -120,12 +125,12 @@ function translate(received, opts, callback) {
     }
 
     const ret = formatResponse(opts, body)
-    callback( null, ret )
-    updateDatabase(opts.from, queryText, ret)
+    callback(null, ret)
+    updateDatabase(dbName, queryText, ret)
   })
 }
 
 module.exports = {
-  translate : translate,
+  translate: translate,
   getLocales: () => lang
 }

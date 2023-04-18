@@ -73,6 +73,28 @@ function extractAudios(context, body) {
   }).get()
 }
 
+function extractExampleSentence(sentenceItem) {
+  // get text from items with class source_url and so on (which are removable texts)
+  var remElems = sentenceItem.children().filter(function () { return ["source_url_spacer", "source_url", "behindLinkDiv"].indexOf(cheerio(this).attr("class")) !== -1 }).get()
+  var remTexts = remElems.map(elem => cheerio(elem).text()).map(elem => elem.trim()).filter(elem => !!elem)
+  // get all text, removing blanks and removable texts
+  var retElems = sentenceItem.text().split("\n").map(elem => elem.trim()).filter(elem => !!elem && remTexts.indexOf(elem) === -1)
+  for (var rem of remTexts) {
+    retElems = retElems.map(elem => elem.replace(rem, ""))
+  }
+  // remove linguee separator
+  var retText = retElems.join(" ").split("[...]").map(elem => elem.trim()).join(" ")
+  return retText
+}
+
+function extractExamples(body) {
+  return body("tbody.examples").find("tr").map(function () {
+    var fromSent = extractExampleSentence(body(this).find(".sentence.left").find(".wrap"))
+    var toSent = extractExampleSentence(body(this).find(".sentence.right2").find(".wrap"))
+    return { "from": fromSent, "to": toSent }
+  }).get()
+}
+
 function extractFromBody(context, body, withAudio) {
   const ret = {
     pos: extractTranslations(context, body)
@@ -93,12 +115,14 @@ function formatResponse(opts, body) {
   const originalExtracted = extractFromBody(origContext, loadedBody, audio)
   const translatedExtracted = extractFromBody(transContext, loadedBody, audio)
   const [translatedInfo, originalInfo] = extractWordInfo(loadedBody)
+  const examples = extractExamples(loadedBody)
 
   return {
     [`extras-${opts.to}`]: translatedInfo,
     [`extras-${opts.from}`]: originalInfo,
     [opts.to]: originalExtracted,
-    [opts.from]: translatedExtracted
+    [opts.from]: translatedExtracted,
+    "examples": examples
   }
 }
 

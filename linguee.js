@@ -130,6 +130,11 @@ function formatOptLangForDB(opts) {
   return [opts.from, opts.to].sort().join("-")
 }
 
+function isEmptyResponse(ret, opts) {
+  let emptyResp = JSON.stringify({ "pos": {} })
+  return (JSON.stringify(ret[opts.from]) === emptyResp && JSON.stringify(ret[opts.to]) === emptyResp)
+}
+
 function translate(received, opts, callback) {
   if (!checkOpts(opts)) {
     return callback('Bad options supplied')
@@ -150,7 +155,9 @@ function translate(received, opts, callback) {
 
     const ret = formatResponse(opts, body)
     callback(null, ret)
-    updateDatabase(dbName, queryText, ret)
+    if (!isEmptyResponse(ret, opts)) {
+      updateDatabase(dbName, queryText, ret)
+    }
   })
 }
 

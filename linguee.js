@@ -143,21 +143,21 @@ function translate(received, opts, callback) {
   const dbName = formatOptLangForDB(opts)
   const dbEntry = queryDatabase(dbName, queryText)
   if (dbEntry !== null) {
-    return callback(null, dbEntry)
+    return callback(null, dbEntry, dbEntry !== null)
   }
   const url = encodeURI(`${server}/${lang[opts.from].name}-${lang[opts.to].name}/${search}&query=${queryText}&${options}`)
   request(url, { encoding: 'binary' }, (error, response, body) => {
 
-    if (error || response.statusCode !== 200) {
+    if (error || response == undefined || response.statusCode !== 200) {
       console.log('Errored: ', error, response.statusCode)
       return callback('Unable to fecth')
     }
 
     const ret = formatResponse(opts, body)
-    callback(null, ret)
     if (!isEmptyResponse(ret, opts)) {
       updateDatabase(dbName, queryText, ret)
     }
+    callback(null, ret, dbEntry !== null)
   })
 }
 

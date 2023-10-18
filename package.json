@@ -21,7 +21,7 @@
   "license": "MIT",
   "dependencies": {
     "cheerio": "^0.22.0",
-    "cli-colors": "0.0.2",
+    "cli-color": "^2.0.3",
     "fs-extra": "^9.1.0",
     "request": "^2.75.0",
     "upath": "^1.1.0"
